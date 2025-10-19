@@ -1,19 +1,30 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import * as dayjs from 'dayjs';
+import * as utc from 'dayjs/plugin/utc';
+import * as customParseFormat from 'dayjs/plugin/customParseFormat';
 
-// Remember to rename these classes and interfaces!
+dayjs.extend(utc);
+dayjs.extend(customParseFormat);
 
-interface MyPluginSettings {
-	mySetting: string;
+interface LogtimeSettings {
+	formatMask: string;
+	isUTC: boolean;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+const DEFAULT_SETTINGS: LogtimeSettings = {
+	formatMask: 'HH:mm',
+	isUTC: true,
+};
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class LogtimePlugin extends Plugin {
+	public settings: LogtimeSettings;
+	private readonly logtimeTrigger = '-:-';
+
+
 
 	async onload() {
+		console.log('Time Log plugin loaded.');
+
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
@@ -66,7 +77,7 @@ export default class MyPlugin extends Plugin {
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new LogtimeSettingTab(this.app, this));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -107,27 +118,45 @@ class SampleModal extends Modal {
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+class LogtimeSettingTab extends PluginSettingTab {
+	plugin: LogtimePlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: LogtimePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
+	private allValidMaskChars(userInputChars: string[]): boolean {
+		const validMaskChars = ['y', 'm', 'd', 'h', 's', 'z', 'a'];
+		return userInputChars.every(char => validMaskChars.includes(char));
+	}	
+
 	display(): void {
 		const {containerEl} = this;
+		let validMaskChars = true;
 
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
+			.setName('Format Mask')
+			.setDesc('If you aren\'t sure, see a list of format masks here: https://day.js.org/docs/en/display/format')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+				.setPlaceholder('HH:mm')
+				.setValue(this.plugin.settings.formatMask)
+				.onChange(async (value: string) => {
+
+					// Capture the alphas from the user input in an array
+					const regex = /[a-zA-Z]/g;
+					const inputAlphas = value.toLowerCase().match(regex);
+
+					// Test to ensure the array only contains valid mask letters, i.e. HH:mm
+					if (inputAlphas !== null) {
+						validMaskChars = this.allValidMaskChars(inputAlphas);
+						console.log(validMaskChars); // Using just to clear the problem message
+					}
+					
+					// Set the validated user input as the mask
+					this.plugin.settings.formatMask = value;
 					await this.plugin.saveSettings();
 				}));
 	}
