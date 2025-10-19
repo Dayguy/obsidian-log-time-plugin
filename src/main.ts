@@ -6,21 +6,19 @@ import * as customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(utc);
 dayjs.extend(customParseFormat);
 
-interface LogtimeSettings {
+interface LogTimeSettings {
 	formatMask: string;
 	isUTC: boolean;
 }
 
-const DEFAULT_SETTINGS: LogtimeSettings = {
+const DEFAULT_SETTINGS: LogTimeSettings = {
 	formatMask: 'HH:mm',
 	isUTC: true,
 };
 
-export default class LogtimePlugin extends Plugin {
-	public settings: LogtimeSettings;
+export default class LogTimePlugin extends Plugin {
+	public settings: LogTimeSettings;
 	private readonly logtimeTrigger = '-:-';
-
-
 
 	async onload() {
 		console.log('Time Log plugin loaded.');
@@ -77,7 +75,7 @@ export default class LogtimePlugin extends Plugin {
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new LogtimeSettingTab(this.app, this));
+		this.addSettingTab(new LogTimeSettingTab(this.app, this));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -118,10 +116,10 @@ class SampleModal extends Modal {
 	}
 }
 
-class LogtimeSettingTab extends PluginSettingTab {
-	plugin: LogtimePlugin;
+class LogTimeSettingTab extends PluginSettingTab {
+	plugin: LogTimePlugin;
 
-	constructor(app: App, plugin: LogtimePlugin) {
+	constructor(app: App, plugin: LogTimePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -153,7 +151,12 @@ class LogtimeSettingTab extends PluginSettingTab {
 					if (inputAlphas !== null) {
 						validMaskChars = this.allValidMaskChars(inputAlphas);
 						console.log(validMaskChars); // Using just to clear the problem message
+
+						// Raise an error if validMaskChars comes back false
+						
 					}
+
+					// Test that using it will return a value prior to setting
 					
 					// Set the validated user input as the mask
 					this.plugin.settings.formatMask = value;
