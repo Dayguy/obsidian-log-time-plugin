@@ -11,14 +11,14 @@ interface LogTimeSettings {
 	isUTC: boolean;
 }
 
-const DEFAULT_SETTINGS: LogTimeSettings = {
+export const DEFAULT_SETTINGS: LogTimeSettings = {
 	formatMask: 'HH:mm',
 	isUTC: true,
 };
 
 export default class LogTimePlugin extends Plugin {
 	public settings: LogTimeSettings;
-	private readonly logtimeTrigger = '-:-';
+	private readonly logTimeTrigger = '-:-';
 
 	async onload() {
 		console.log('Time Log plugin loaded.');
@@ -77,7 +77,7 @@ export default class LogTimePlugin extends Plugin {
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new LogTimeSettingTab(this.app, this));
 
-/*		
+	
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
@@ -86,7 +86,7 @@ export default class LogTimePlugin extends Plugin {
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-*/
+
 
 	}
 
@@ -128,42 +128,40 @@ class LogTimeSettingTab extends PluginSettingTab {
 	}
 
 	private allValidMaskChars(userInputChars: string[]): boolean {
-		const validMaskChars = ['y', 'm', 'd', 'h', 's', 'z', 'a'];
+		const validMaskChars = ['a', 'd', 'h', 'm', 's', 'y', 'z'];
 		return userInputChars.every(char => validMaskChars.includes(char));
 	}	
 
 	display(): void {
-		const {containerEl} = this;
-		let validMaskChars = true;
-
+		const { containerEl } = this;
 		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Format Mask')
-			.setDesc('If you aren\'t sure, see a list of format masks here: https://day.js.org/docs/en/display/format')
-			.addText(text => text
-				.setPlaceholder('HH:mm')
+		
+		new Setting(containerEl)		
+			.setName('Format mask')
+			.setDesc('Refer to list of valid masks found here: https://day.js.org/docs/en/display/format')
+			.addText(text => {				
+				text.setPlaceholder('Enter format mask')
 				.setValue(this.plugin.settings.formatMask)
-				.onChange(async (value: string) => {
-
-					// Capture the alphas from the user input in an array
-					const regex = /[a-zA-Z]/g;
-					const inputAlphas = value.toLowerCase().match(regex);
-
-					// Test to ensure the array only contains valid mask letters, i.e. HH:mm
-					if (inputAlphas !== null) {
-						validMaskChars = this.allValidMaskChars(inputAlphas);
-						console.log(validMaskChars); // Using just to clear the problem message
-
-						// Raise an error if validMaskChars comes back false
-						
+				.onChange(async (value) => {
+					const inputChars = value.toLowerCase().replace(/[^a-zA-Z]/g,'').split('');
+					const isValid = this.allValidMaskChars(inputChars);
+					if (isValid) {
+						text.inputEl.style.border = '';
+						text.inputEl.textContent = '';
+						// Characters are valid for time/date mask 
+						this.plugin.settings.formatMask = value;
+					} else {
+						text.inputEl.parentElement?.createEl('div',{cls: 'my-plugin-error'});
+						text.inputEl.style.border = '1px solid var(--color-red)';
+						text.inputEl.style.color = 'var(--color-red)';
+						text.inputEl.style.fontSize = 'var(--font-ui-small)';
+						text.inputEl.textContent = 'Please enter a valid mask.';
+						// Invalid format so use the default
+						this.plugin.settings.formatMask = DEFAULT_SETTINGS.formatMask;				
 					}
+				})
 
-					// Test that using it will return a value prior to setting
-					
-					// Set the validated user input as the mask
-					this.plugin.settings.formatMask = value;
-					await this.plugin.saveSettings();
-				}));
+			})
+
 	}
 }
